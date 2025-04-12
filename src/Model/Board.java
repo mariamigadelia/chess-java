@@ -1,4 +1,4 @@
-
+package Model;
 
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -10,6 +10,9 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.util.LinkedList;
 import java.util.List;
+
+import Controller.CheckmateDetector;
+import View.GameWindow;
 
 import javax.swing.*;
 

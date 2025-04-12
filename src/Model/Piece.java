@@ -1,4 +1,4 @@
-
+package Model;
 
 import java.awt.Graphics;
 import java.awt.Image;
@@ -6,6 +6,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
+
 
 import javax.imageio.ImageIO;
 
@@ -27,7 +28,7 @@ public abstract class Piece {
           }
     }
     
-    public boolean move(Square fin) {
+    public boolean move(Model.Square fin) {
         Piece occup = fin.getOccupyingPiece();
         
         if (occup != null) {

@@ -1,3 +1,6 @@
+package View;
+
+import View.GameWindow;
 
 import java.awt.BorderLayout;
 import java.awt.Component;

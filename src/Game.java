@@ -1,4 +1,6 @@
 
+import View.StartMenu;
+
 import javax.swing.*;
 
 public class Game implements Runnable {
