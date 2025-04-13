@@ -1,5 +1,7 @@
 package Model;
 
+import Model.board.Board;
+import Model.board.Square;
 import View.PieceView;
 
 import java.util.List;

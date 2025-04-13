@@ -1,6 +1,6 @@
 package View;
 
-import Model.Board;
+import Model.board.Board;
 
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
@@ -37,7 +37,7 @@ public class GameWindow {
             Image whiteImg = ImageIO.read(getClass().getResource("wp.png"));
             gameWindow.setIconImage(whiteImg);
         } catch (Exception e) {
-            System.out.println("Game file wp.png not found");
+            System.out.println("Controller.Game file wp.png not found");
         }
 
         gameWindow.setLocation(100, 100);
@@ -45,7 +45,7 @@ public class GameWindow {
         
         gameWindow.setLayout(new BorderLayout(20,20));
        
-        // Game Data window
+        // Controller.Game Data window
         JPanel gameData = gameDataPanel(blackName, whiteName, hh, mm, ss);
         gameData.setSize(gameData.getPreferredSize());
         gameWindow.add(gameData, BorderLayout.NORTH);
@@ -200,7 +200,7 @@ public class GameWindow {
         instr.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 JOptionPane.showMessageDialog(gameWindow,
-                        "Move the chess pieces on the board by clicking\n"
+                        "Move the chess Model.pieces on the Model.board by clicking\n"
                         + "and dragging. The game will watch out for illegal\n"
                         + "moves. You can win either by your opponent running\n"
                         + "out of time or by checkmating your opponent.\n"

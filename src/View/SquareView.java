@@ -1,7 +1,7 @@
 package View;
 
 import Model.Piece;
-import Model.Square;
+import Model.board.Square;
 
 import javax.swing.*;
 import java.awt.*;

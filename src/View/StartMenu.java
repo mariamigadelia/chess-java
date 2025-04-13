@@ -30,7 +30,7 @@ public class StartMenu implements Runnable {
         Box components = Box.createVerticalBox();
         startWindow.add(components);
         
-        // Game title
+        // Controller.Game title
         final JPanel titlePanel = new JPanel();
         components.add(titlePanel);
         final JLabel titleLabel = new JLabel("Chess");
@@ -118,7 +118,7 @@ public class StartMenu implements Runnable {
             public void actionPerformed(ActionEvent e) {
                 JOptionPane.showMessageDialog(startWindow,
                         "To begin a new game, input player names\n" +
-                        "next to the pieces. Set the clocks and\n" +
+                        "next to the Model.pieces. Set the clocks and\n" +
                         "click \"Start\". Setting the timer to all\n" +
                         "zeroes begins a new untimed game.",
                         "How to play",
