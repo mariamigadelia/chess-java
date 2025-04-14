@@ -1,8 +1,8 @@
 package Model.rules;
 
-import Model.Piece;
-import Model.board.Board;
-import Model.board.Square;
+import Model.pieces.Piece;
+import Model.Board;
+import Model.Square;
 import Model.pieces.Bishop;
 import Model.pieces.King;
 import Model.pieces.Queen;
@@ -36,8 +36,8 @@ public class GameRulesEngine {
      * @param board The board which the engine monitors
      * @param whitePieces White pieces on the board
      * @param blackPieces Black pieces on the board
-     * @param whiteKing Piece object representing the white king
-     * @param blackKing Piece object representing the black king
+     * @param whiteKing Model.Piece object representing the white king
+     * @param blackKing Model.Piece object representing the black king
      */
     public GameRulesEngine(Board board, LinkedList<Piece> whitePieces,
                            LinkedList<Piece> blackPieces, King whiteKing, King blackKing) {
@@ -232,7 +232,7 @@ public class GameRulesEngine {
 
     /**
      * Tests a move to prevent making an illegal move that puts the player in check.
-     * @param p Piece to be moved
+     * @param p Model.Piece to be moved
      * @param sq Square to which p is about to move
      * @return false if move would cause a check
      */

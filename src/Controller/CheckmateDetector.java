@@ -1,8 +1,8 @@
 package Controller;
 
-import Model.Piece;
-import Model.board.Board;
-import Model.board.Square;
+import Model.pieces.Piece;
+import Model.Board;
+import Model.Square;
 import Model.pieces.King;
 import Model.rules.GameRulesEngine;
 
@@ -25,8 +25,8 @@ public class CheckmateDetector {
      * @param board The board which the detector monitors
      * @param whitePieces White pieces on the board
      * @param blackPieces Black pieces on the board
-     * @param whiteKing Piece object representing the white king
-     * @param blackKing Piece object representing the black king
+     * @param whiteKing Model.Piece object representing the white king
+     * @param blackKing Model.Piece object representing the black king
      */
     public CheckmateDetector(Board board, LinkedList<Piece> whitePieces,
                              LinkedList<Piece> blackPieces, King whiteKing, King blackKing) {
@@ -95,7 +95,7 @@ public class CheckmateDetector {
     /**
      * Tests a move a player is about to make to prevent making an illegal move
      * that puts the player in check.
-     * @param p Piece moved
+     * @param p Model.Piece moved
      * @param sq Square to which p is about to move
      * @return false if move would cause a check
      */

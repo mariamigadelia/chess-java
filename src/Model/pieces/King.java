@@ -1,13 +1,12 @@
 package Model.pieces;
 
-import Model.board.Board;
-import Model.Piece;
-import Model.board.Square;
+import Model.Board;
+import Model.Square;
 
 import java.util.LinkedList;
 import java.util.List;
 
-public class King extends Piece {
+public class King extends Model.Piece {
 
     public King(int color, Square initSq, String img_file) {
         super(color, initSq, img_file);

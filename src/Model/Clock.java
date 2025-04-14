@@ -1,4 +1,4 @@
-package Model.board;
+package Model;
 
 public class Clock {
     private int hh;

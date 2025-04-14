@@ -1,12 +1,11 @@
 package Model.pieces;
 
-import Model.board.Board;
-import Model.Piece;
-import Model.board.Square;
+import Model.Board;
+import Model.Square;
 
 import java.util.List;
 
-public class Bishop extends Piece {
+public class Bishop extends Model.Piece {
 
     public Bishop(int color, Square initSq, String img_file) {
         super(color, initSq, img_file);
@@ -20,4 +19,6 @@ public class Bishop extends Piece {
         
         return getDiagonalOccupations(board, x, y);
     }
+
+
 }

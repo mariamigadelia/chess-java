@@ -1,4 +1,4 @@
-package Model.board;
+package Model;
 
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -12,9 +12,10 @@ import java.util.LinkedList;
 import java.util.List;
 
 import Controller.CheckmateDetector;
-import Model.Piece;
+import Model.pieces.Piece;
 import Model.pieces.*;
 import View.GameWindow;
+
 
 import javax.swing.*;
 
@@ -87,11 +88,14 @@ public class Board extends JPanel implements MouseListener, MouseMotionListener 
 
     }
 
+    private void add(Square square) {
+    }
+
     private void initializePieces() {
 
         for (int x = 0; x < 8; x++) {
-            board[1][x].put(new Square.Pawn(0, board[1][x], RESOURCES_BPAWN_PNG));
-            board[6][x].put(new Square.Pawn(1, board[6][x], RESOURCES_WPAWN_PNG));
+            board[1][x].put(new Pawn(0, board[1][x], RESOURCES_BPAWN_PNG));
+            board[6][x].put(new Pawn(1, board[6][x], RESOURCES_WPAWN_PNG));
         }
 
         board[7][3].put(new Queen(1, board[7][3], RESOURCES_WQUEEN_PNG));
