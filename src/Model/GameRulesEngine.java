@@ -1,6 +1,6 @@
 package Model.rules;
 
-import Model.pieces.Piece;
+import Model.Piece;
 import Model.Board;
 import Model.Square;
 import Model.pieces.Bishop;
