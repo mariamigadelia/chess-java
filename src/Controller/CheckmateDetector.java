@@ -1,105 +1,295 @@
 package Controller;
 
-import Model.Piece;
 import Model.Board;
-import Model.Square;
+import Model.Move;
+import Model.Piece;
+import Model.PieceColor;
+import Model.Position;
 import Model.pieces.King;
-import Model.rules.GameRulesEngine;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Controller component of the Chess game that detects check and checkmate conditions
- * and provides this information to the user interface.
- *
- * @author Jussi Lundstedt
- */
 public class CheckmateDetector {
-    private GameRulesEngine rulesEngine;
-    private LinkedList<Square> movableSquares;
+    private Board board;
+    private List<Position> availableMovePositions;
 
     /**
-     * Constructs a new instance of Controller.CheckmateDetector on a given board.
+     * Creates a new CheckmateDetector that works with the provided board
      *
-     * @param board The board which the detector monitors
-     * @param whitePieces White pieces on the board
-     * @param blackPieces Black pieces on the board
-     * @param whiteKing Model.Piece object representing the white king
-     * @param blackKing Model.Piece object representing the black king
+     * @param board The chess board to analyze
      */
-    public CheckmateDetector(Board board, LinkedList<Piece> whitePieces,
-                             LinkedList<Piece> blackPieces, King whiteKing, King blackKing) {
-        this.rulesEngine = new GameRulesEngine(board, whitePieces, blackPieces, whiteKing, blackKing);
-        this.movableSquares = new LinkedList<Square>();
+    public CheckmateDetector(Board board) {
+        this.board = board;
+        this.availableMovePositions = new ArrayList<>();
     }
 
     /**
-     * Updates the detector with the current state of the game.
+     * Determines if the black king is currently in check
+     *
+     * @return true if black is in check, false otherwise
      */
-    public void update() {
-        rulesEngine.update();
+    public boolean isBlackInCheck() {
+        return board.isKingInCheck(PieceColor.BLACK);
     }
 
     /**
-     * Checks if the black king is threatened
-     * @return boolean representing whether the black king is in check.
+     * Determines if the white king is currently in check
+     *
+     * @return true if white is in check, false otherwise
      */
-    public boolean blackInCheck() {
-        return rulesEngine.isBlackInCheck();
+    public boolean isWhiteInCheck() {
+        return board.isKingInCheck(PieceColor.WHITE);
     }
 
     /**
-     * Checks if the white king is threatened
-     * @return boolean representing whether the white king is in check.
+     * Determines if the black player is in checkmate
+     *
+     * @return true if black is checkmated, false otherwise
      */
-    public boolean whiteInCheck() {
-        return rulesEngine.isWhiteInCheck();
+    public boolean isBlackCheckmated() {
+        return board.isCheckmate(PieceColor.BLACK);
     }
 
     /**
-     * Checks whether black is in checkmate.
-     * @return boolean representing if black player is checkmated.
+     * Determines if the white player is in checkmate
+     *
+     * @return true if white is checkmated, false otherwise
      */
-    public boolean blackCheckMated() {
-        return rulesEngine.isBlackCheckmated();
+    public boolean isWhiteCheckmated() {
+        return board.isCheckmate(PieceColor.WHITE);
     }
 
     /**
-     * Checks whether white is in checkmate.
-     * @return boolean representing if white player is checkmated.
+     * Gets a list of all positions that a player can move to on their turn
+     *
+     * @param isWhiteTurn indicates whose turn it is
+     * @return a list of valid destination positions
      */
-    public boolean whiteCheckMated() {
-        return rulesEngine.isWhiteCheckmated();
-    }
+    public List<Position> getValidDestinations(boolean isWhiteTurn) {
+        int activeColor = isWhiteTurn ? PieceColor.WHITE : PieceColor.BLACK;
+        List<Move> legalMoves = board.getAllLegalMoves(activeColor);
 
-    /**
-     * Method to get a list of allowable squares that the player can move.
-     * Defaults to all squares, but limits available squares if player is in
-     * check.
-     * @param isWhite boolean representing whether it's white player's turn
-     * @return List of squares that the player can move into.
-     */
-    public List<Square> getAllowableSquares(boolean isWhite) {
-        movableSquares.clear();
+        // Clear the previous list of positions
+        availableMovePositions.clear();
 
-        if (isWhite) {
-            movableSquares.addAll(rulesEngine.getCheckEscapeMoves(true));
-        } else {
-            movableSquares.addAll(rulesEngine.getCheckEscapeMoves(false));
+        // Build the new list from legal moves
+        for (Move move : legalMoves) {
+            Position destination = move.getDestination();
+            if (!availableMovePositions.contains(destination)) {
+                availableMovePositions.add(destination);
+            }
         }
 
-        return movableSquares;
+        return availableMovePositions;
     }
 
     /**
-     * Tests a move a player is about to make to prevent making an illegal move
-     * that puts the player in check.
-     * @param p Model.Piece moved
-     * @param sq Square to which p is about to move
-     * @return false if move would cause a check
+     * Tests if a proposed move would be legal (not leaving the king in check)
+     *
+     * @param piece The piece to move
+     * @param targetPosition The destination position
+     * @return true if the move is legal, false if it would leave the king in check
      */
-    public boolean testMove(Piece p, Square sq) {
-        return rulesEngine.testMove(p, sq);
+    public boolean isMoveLegal(Piece piece, Position targetPosition) {
+        Position startPosition = piece.getPosition();
+        Piece capturedPiece = board.getPiece(targetPosition);
+
+        // Create the move
+        Move proposedMove = Move.createMove(
+                startPosition,
+                targetPosition,
+                piece,
+                capturedPiece
+        );
+
+        // Create a copy of the board to test the move
+        Board simulationBoard = new Board(board);
+
+        // Execute the move on the copy
+        simulationBoard.executeMove(proposedMove);
+
+        // Check if the player's king would be in check after this move
+        return !simulationBoard.isKingInCheck(piece.getColor());
+    }
+
+    /**
+     * Updates the board reference when the game board changes
+     *
+     * @param board The new board to analyze
+     */
+    public void setBoard(Board board) {
+        this.board = board;
+    }
+
+    /**
+     * Checks if the king has any legal moves to escape check
+     *
+     * @param king The king to analyze
+     * @return true if the king can move to a safe square
+     */
+    private boolean canKingEscape(King king) {
+        List<Move> kingMoves = king.getLegalMoves(board);
+        return !kingMoves.isEmpty();
+    }
+
+    /**
+     * Checks if any friendly piece can capture a piece that's checking the king
+     *
+     * @param color The color of the side being checked
+     * @return true if the attacking piece can be captured
+     */
+    private boolean canAttackerBeCaptured(int color) {
+        King king = board.getKing(color);
+        int opponentColor = (color == PieceColor.WHITE) ? PieceColor.BLACK : PieceColor.WHITE;
+        List<Piece> checkingPieces = findCheckingPieces(king, opponentColor);
+
+        // Can only capture if there's exactly one piece giving check
+        if (checkingPieces.size() != 1) {
+            return false;
+        }
+
+        Piece attacker = checkingPieces.get(0);
+        List<Piece> friendlyPieces = board.getPiecesByColor(color);
+
+        for (Piece defender : friendlyPieces) {
+            List<Move> possibleMoves = defender.getLegalMoves(board);
+            for (Move move : possibleMoves) {
+                if (move.getDestination().equals(attacker.getPosition())) {
+                    // Make sure this capture doesn't leave king in check
+                    Board tempBoard = new Board(board);
+                    tempBoard.executeMove(move);
+
+                    if (!tempBoard.isKingInCheck(color)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Checks if the check can be blocked by interposing a piece
+     *
+     * @param color The color of the side being checked
+     * @return true if a piece can block the check
+     */
+    private boolean canCheckBeBlocked(int color) {
+        King king = board.getKing(color);
+        int opponentColor = (color == PieceColor.WHITE) ? PieceColor.BLACK : PieceColor.WHITE;
+        List<Piece> checkingPieces = findCheckingPieces(king, opponentColor);
+
+        // Can only block if there's exactly one piece giving check
+        if (checkingPieces.size() != 1) {
+            return false;
+        }
+
+        // Only sliding pieces (queen, rook, bishop) can be blocked
+        Piece attacker = checkingPieces.get(0);
+        String pieceType = attacker.getType();
+
+        if (!pieceType.equals("Queen") && !pieceType.equals("Rook") && !pieceType.equals("Bishop")) {
+            return false;
+        }
+
+        // Find squares between attacker and king
+        List<Position> pathSquares = findSquaresBetween(attacker.getPosition(), king.getPosition());
+
+        // Check if any friendly piece can move to block
+        List<Piece> friendlyPieces = board.getPiecesByColor(color);
+
+        for (Piece defender : friendlyPieces) {
+            if (defender instanceof King) continue;  // King can't block check
+
+            List<Move> possibleMoves = defender.getLegalMoves(board);
+            for (Move move : possibleMoves) {
+                if (pathSquares.contains(move.getDestination())) {
+                    // Verify this block doesn't leave king in check
+                    Board tempBoard = new Board(board);
+                    tempBoard.executeMove(move);
+
+                    if (!tempBoard.isKingInCheck(color)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Finds all pieces currently checking the king
+     *
+     * @param king The king being checked
+     * @param opponentColor The color of potential attackers
+     * @return List of pieces giving check to the king
+     */
+    private List<Piece> findCheckingPieces(King king, int opponentColor) {
+        List<Piece> checkingPieces = new ArrayList<>();
+        List<Piece> opponentPieces = board.getPiecesByColor(opponentColor);
+        Position kingPosition = king.getPosition();
+
+        for (Piece piece : opponentPieces) {
+            List<Position> attackPositions = piece.getAttackPositions(board);
+            if (attackPositions.contains(kingPosition)) {
+                checkingPieces.add(piece);
+            }
+        }
+
+        return checkingPieces;
+    }
+
+    /**
+     * Finds all squares between two positions (for straight lines or diagonals)
+     *
+     * @param start Starting position
+     * @param end Ending position
+     * @return List of positions between start and end (exclusive)
+     */
+    private List<Position> findSquaresBetween(Position start, Position end) {
+        List<Position> squares = new ArrayList<>();
+
+        int startCol = start.getColumn();
+        int startRow = start.getRow();
+        int endCol = end.getColumn();
+        int endRow = end.getRow();
+
+        // Same row - horizontal
+        if (startRow == endRow) {
+            int minCol = Math.min(startCol, endCol);
+            int maxCol = Math.max(startCol, endCol);
+
+            for (int col = minCol + 1; col < maxCol; col++) {
+                squares.add(new Position(col, startRow));
+            }
+        }
+        // Same column - vertical
+        else if (startCol == endCol) {
+            int minRow = Math.min(startRow, endRow);
+            int maxRow = Math.max(startRow, endRow);
+
+            for (int row = minRow + 1; row < maxRow; row++) {
+                squares.add(new Position(startCol, row));
+            }
+        }
+        // Diagonal path
+        else if (Math.abs(startCol - endCol) == Math.abs(startRow - endRow)) {
+            int colDirection = (endCol > startCol) ? 1 : -1;
+            int rowDirection = (endRow > startRow) ? 1 : -1;
+
+            int col = startCol + colDirection;
+            int row = startRow + rowDirection;
+
+            while (col != endCol && row != endRow) {
+                squares.add(new Position(col, row));
+                col += colDirection;
+                row += rowDirection;
+            }
+        }
+
+        return squares;
     }
 }

@@ -1,262 +1,317 @@
 package Model;
-
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.GridLayout;
-import java.awt.Image;
-import java.awt.Point;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
-import java.util.LinkedList;
+import Model.pieces.*;
+import java.util.ArrayList;
 import java.util.List;
 
-import Controller.CheckmateDetector;
-import Model.pieces.Piece;
-import Model.pieces.*;
-import View.GameWindow;
+public class Board {
+    private final Piece[][] boardArray;
+    private List<Piece> lightPieces;
+    private List<Piece> darkPieces;
+    private List<Move> moveSequence;
+    private King lightKing;
+    private King darkKing;
 
+    public Board() {
+        boardArray = new Piece[8][8];
+        lightPieces = new ArrayList<>();
+        darkPieces = new ArrayList<>();
+        moveSequence = new ArrayList<>();
+        setupInitialPosition();
+    }
 
-import javax.swing.*;
+    // Deep copy constructor
+    public Board(Board original) {
+        this.boardArray = new Piece[8][8];
+        this.lightPieces = new ArrayList<>();
+        this.darkPieces = new ArrayList<>();
+        this.moveSequence = new ArrayList<>(original.moveSequence);
 
-@SuppressWarnings("serial")
-public class Board extends JPanel implements MouseListener, MouseMotionListener {
-    // Resource location constants for piece images
-    private static final String RESOURCES_WBISHOP_PNG = "wbishop.png";
-    private static final String RESOURCES_BBISHOP_PNG = "bbishop.png";
-    private static final String RESOURCES_WKNIGHT_PNG = "wknight.png";
-    private static final String RESOURCES_BKNIGHT_PNG = "bknight.png";
-    private static final String RESOURCES_WROOK_PNG = "wrook.png";
-    private static final String RESOURCES_BROOK_PNG = "brook.png";
-    private static final String RESOURCES_WKING_PNG = "wking.png";
-    private static final String RESOURCES_BKING_PNG = "bking.png";
-    private static final String RESOURCES_BQUEEN_PNG = "bqueen.png";
-    private static final String RESOURCES_WQUEEN_PNG = "wqueen.png";
-    private static final String RESOURCES_WPAWN_PNG = "wpawn.png";
-    private static final String RESOURCES_BPAWN_PNG = "bpawn.png";
+        // Copy the light pieces
+        for (Piece lightPiece : original.lightPieces) {
+            Piece copiedPiece = lightPiece.duplicate();
+            lightPieces.add(copiedPiece);
+            Position pos = copiedPiece.getPosition();
+            if (pos != null) {
+                boardArray[pos.getRow()][pos.getColumn()] = copiedPiece;
+            }
 
-    // Logical and graphical representations of Model.board
-    private final Square[][] board;
-    private final GameWindow g;
-
-    // List of Model.pieces and whether they are movable
-    public final LinkedList<Piece> Bpieces;
-    public final LinkedList<Piece> Wpieces;
-    public List<Square> movable;
-
-    private boolean whiteTurn;
-
-    private Piece currPiece;
-    private int currX;
-    private int currY;
-
-    private CheckmateDetector cmd;
-
-    public Board(GameWindow g) {
-        this.g = g;
-        board = new Square[8][8];
-        Bpieces = new LinkedList<Piece>();
-        Wpieces = new LinkedList<Piece>();
-        setLayout(new GridLayout(8, 8, 0, 0));
-
-        this.addMouseListener(this);
-        this.addMouseMotionListener(this);
-
-        for (int x = 0; x < 8; x++) {
-            for (int y = 0; y < 8; y++) {
-                int xMod = x % 2;
-                int yMod = y % 2;
-
-                if ((xMod == 0 && yMod == 0) || (xMod == 1 && yMod == 1)) {
-                    board[x][y] = new Square(this, 1, y, x);
-                    this.add(board[x][y]);
-                } else {
-                    board[x][y] = new Square(this, 0, y, x);
-                    this.add(board[x][y]);
-                }
+            // Track king reference
+            if (copiedPiece instanceof King) {
+                this.lightKing = (King) copiedPiece;
             }
         }
 
-        initializePieces();
-
-        this.setPreferredSize(new Dimension(400, 400));
-        this.setMaximumSize(new Dimension(400, 400));
-        this.setMinimumSize(this.getPreferredSize());
-        this.setSize(new Dimension(400, 400));
-
-        whiteTurn = true;
-
-    }
-
-    private void add(Square square) {
-    }
-
-    private void initializePieces() {
-
-        for (int x = 0; x < 8; x++) {
-            board[1][x].put(new Pawn(0, board[1][x], RESOURCES_BPAWN_PNG));
-            board[6][x].put(new Pawn(1, board[6][x], RESOURCES_WPAWN_PNG));
-        }
-
-        board[7][3].put(new Queen(1, board[7][3], RESOURCES_WQUEEN_PNG));
-        board[0][3].put(new Queen(0, board[0][3], RESOURCES_BQUEEN_PNG));
-
-        King bk = new King(0, board[0][4], RESOURCES_BKING_PNG);
-        King wk = new King(1, board[7][4], RESOURCES_WKING_PNG);
-        board[0][4].put(bk);
-        board[7][4].put(wk);
-
-        board[0][0].put(new Rook(0, board[0][0], RESOURCES_BROOK_PNG));
-        board[0][7].put(new Rook(0, board[0][7], RESOURCES_BROOK_PNG));
-        board[7][0].put(new Rook(1, board[7][0], RESOURCES_WROOK_PNG));
-        board[7][7].put(new Rook(1, board[7][7], RESOURCES_WROOK_PNG));
-
-        board[0][1].put(new Knight(0, board[0][1], RESOURCES_BKNIGHT_PNG));
-        board[0][6].put(new Knight(0, board[0][6], RESOURCES_BKNIGHT_PNG));
-        board[7][1].put(new Knight(1, board[7][1], RESOURCES_WKNIGHT_PNG));
-        board[7][6].put(new Knight(1, board[7][6], RESOURCES_WKNIGHT_PNG));
-
-        board[0][2].put(new Bishop(0, board[0][2], RESOURCES_BBISHOP_PNG));
-        board[0][5].put(new Bishop(0, board[0][5], RESOURCES_BBISHOP_PNG));
-        board[7][2].put(new Bishop(1, board[7][2], RESOURCES_WBISHOP_PNG));
-        board[7][5].put(new Bishop(1, board[7][5], RESOURCES_WBISHOP_PNG));
-
-
-        for(int y = 0; y < 2; y++) {
-            for (int x = 0; x < 8; x++) {
-                Bpieces.add(board[y][x].getOccupyingPiece());
-                Wpieces.add(board[7-y][x].getOccupyingPiece());
+        // Copy the dark pieces
+        for (Piece darkPiece : original.darkPieces) {
+            Piece copiedPiece = darkPiece.duplicate();
+            darkPieces.add(copiedPiece);
+            Position pos = copiedPiece.getPosition();
+            if (pos != null) {
+                boardArray[pos.getRow()][pos.getColumn()] = copiedPiece;
             }
-        }
 
-
-
-        cmd = new CheckmateDetector(this, Wpieces, Bpieces, wk, bk);
-    }
-
-    public Square[][] getSquareArray() {
-        return this.board;
-    }
-
-    public boolean getTurn() {
-        return whiteTurn;
-    }
-
-    public void setCurrPiece(Piece p) {
-        this.currPiece = p;
-    }
-
-    public Piece getCurrPiece() {
-        return this.currPiece;
-    }
-
-    @Override
-    public void paintComponent(Graphics g) {
-        // super.paintComponent(g);
-
-        for (int x = 0; x < 8; x++) {
-            for (int y = 0; y < 8; y++) {
-                Square sq = board[y][x];
-                sq.paintComponent(g);
-            }
-        }
-
-        if (currPiece != null) {
-            if ((currPiece.getColor() == 1 && whiteTurn)
-                    || (currPiece.getColor() == 0 && !whiteTurn)) {
-                final Image i = currPiece.getImage();
-                g.drawImage(i, currX, currY, null);
+            // Track king reference
+            if (copiedPiece instanceof King) {
+                this.darkKing = (King) copiedPiece;
             }
         }
     }
 
-    @Override
-    public void mousePressed(MouseEvent e) {
-        currX = e.getX();
-        currY = e.getY();
-
-        Square sq = (Square) this.getComponentAt(new Point(e.getX(), e.getY()));
-
-        if (sq.isOccupied()) {
-            currPiece = sq.getOccupyingPiece();
-            if (currPiece.getColor() == 0 && whiteTurn)
-                return;
-            if (currPiece.getColor() == 1 && !whiteTurn)
-                return;
-            sq.setDisplay(false);
+    private void setupInitialPosition() {
+        // Setup pawns
+        for (int col = 0; col < 8; col++) {
+            addPieceToBoard(new Pawn(PieceColor.BLACK, new Position(col, 1)));
+            addPieceToBoard(new Pawn(PieceColor.WHITE, new Position(col, 6)));
         }
-        repaint();
+
+        // Setup rooks
+        addPieceToBoard(new Rook(PieceColor.BLACK, new Position(0, 0)));
+        addPieceToBoard(new Rook(PieceColor.BLACK, new Position(7, 0)));
+        addPieceToBoard(new Rook(PieceColor.WHITE, new Position(0, 7)));
+        addPieceToBoard(new Rook(PieceColor.WHITE, new Position(7, 7)));
+
+        // Setup knights
+        addPieceToBoard(new Knight(PieceColor.BLACK, new Position(1, 0)));
+        addPieceToBoard(new Knight(PieceColor.BLACK, new Position(6, 0)));
+        addPieceToBoard(new Knight(PieceColor.WHITE, new Position(1, 7)));
+        addPieceToBoard(new Knight(PieceColor.WHITE, new Position(6, 7)));
+
+        // Setup bishops
+        addPieceToBoard(new Bishop(PieceColor.BLACK, new Position(2, 0)));
+        addPieceToBoard(new Bishop(PieceColor.BLACK, new Position(5, 0)));
+        addPieceToBoard(new Bishop(PieceColor.WHITE, new Position(2, 7)));
+        addPieceToBoard(new Bishop(PieceColor.WHITE, new Position(5, 7)));
+
+        // Setup queens
+        addPieceToBoard(new Queen(PieceColor.BLACK, new Position(3, 0)));
+        addPieceToBoard(new Queen(PieceColor.WHITE, new Position(3, 7)));
+
+        // Setup kings
+        darkKing = new King(PieceColor.BLACK, new Position(4, 0));
+        lightKing = new King(PieceColor.WHITE, new Position(4, 7));
+        addPieceToBoard(darkKing);
+        addPieceToBoard(lightKing);
     }
 
-    @Override
-    public void mouseReleased(MouseEvent e) {
-        Square sq = (Square) this.getComponentAt(new Point(e.getX(), e.getY()));
+    private void addPieceToBoard(Piece piece) {
+        Position pos = piece.getPosition();
+        boardArray[pos.getRow()][pos.getColumn()] = piece;
 
-        if (currPiece != null) {
-            if (currPiece.getColor() == 0 && whiteTurn)
-                return;
-            if (currPiece.getColor() == 1 && !whiteTurn)
-                return;
+        if (piece.getColor() == PieceColor.WHITE) {
+            lightPieces.add(piece);
+        } else {
+            darkPieces.add(piece);
+        }
+    }
 
-            List<Square> legalMoves = currPiece.getLegalMoves(this);
-            movable = cmd.getAllowableSquares(whiteTurn);
+    public Piece getPiece(Position position) {
+        if (!isPositionInBounds(position)) {
+            return null;
+        }
+        return boardArray[position.getRow()][position.getColumn()];
+    }
 
-            if (legalMoves.contains(sq) && movable.contains(sq)
-                    && cmd.testMove(currPiece, sq)) {
-                sq.setDisplay(true);
-                currPiece.move(sq);
-                cmd.update();
+    public boolean isPositionInBounds(Position position) {
+        int col = position.getColumn();
+        int row = position.getRow();
+        return col >= 0 && col < 8 && row >= 0 && row < 8;
+    }
 
-                if (cmd.blackCheckMated()) {
-                    currPiece = null;
-                    repaint();
-                    this.removeMouseListener(this);
-                    this.removeMouseMotionListener(this);
-                    g.checkmateOccurred(0);
-                } else if (cmd.whiteCheckMated()) {
-                    currPiece = null;
-                    repaint();
-                    this.removeMouseListener(this);
-                    this.removeMouseMotionListener(this);
-                    g.checkmateOccurred(1);
-                } else {
-                    currPiece = null;
-                    whiteTurn = !whiteTurn;
-                    movable = cmd.getAllowableSquares(whiteTurn);
-                }
+    public List<Piece> getPiecesByColor(int color) {
+        return color == PieceColor.WHITE ? new ArrayList<>(lightPieces) : new ArrayList<>(darkPieces);
+    }
 
+    public King getKing(int color) {
+        return color == PieceColor.WHITE ? lightKing : darkKing;
+    }
+
+    public boolean executeMove(Move move) {
+        Position from = move.getOrigin();
+        Position to = move.getDestination();
+        Piece piece = move.getMovingPiece();
+
+        // Handle captured piece
+        if (move.getTakenPiece() != null) {
+            Piece capturedPiece = move.getTakenPiece();
+            if (capturedPiece.getColor() == PieceColor.WHITE) {
+                lightPieces.remove(capturedPiece);
             } else {
-                currPiece.getPosition().setDisplay(true);
-                currPiece = null;
+                darkPieces.remove(capturedPiece);
             }
         }
 
-        repaint();
+        // Special handling for en passant
+        if (move.isEnPassantCapture()) {
+            Position capturedPawnPos = new Position(to.getColumn(), from.getRow());
+            Piece capturedPawn = getPiece(capturedPawnPos);
+
+            if (capturedPawn != null) {
+                if (capturedPawn.getColor() == PieceColor.WHITE) {
+                    lightPieces.remove(capturedPawn);
+                } else {
+                    darkPieces.remove(capturedPawn);
+                }
+                boardArray[capturedPawnPos.getRow()][capturedPawnPos.getColumn()] = null;
+            }
+        }
+
+        // Special handling for castling moves
+        if (move.isCastlingMove()) {
+            int row = from.getRow();
+            // Determine if it's kingside or queenside castling
+            if (to.getColumn() > from.getColumn()) {  // Kingside
+                // Move the rook
+                Piece rook = getPiece(new Position(7, row));
+                Position rookNewPos = new Position(5, row);
+                boardArray[row][7] = null;  // Remove rook from old position
+                boardArray[row][5] = rook;  // Place rook in new position
+                rook.setPosition(rookNewPos);
+                rook.setHasMoved(true);
+            } else {  // Queenside
+                // Move the rook
+                Piece rook = getPiece(new Position(0, row));
+                Position rookNewPos = new Position(3, row);
+                boardArray[row][0] = null;  // Remove rook from old position
+                boardArray[row][3] = rook;  // Place rook in new position
+                rook.setPosition(rookNewPos);
+                rook.setHasMoved(true);
+            }
+        }
+
+        // Update the board array
+        boardArray[from.getRow()][from.getColumn()] = null;
+        boardArray[to.getRow()][to.getColumn()] = piece;
+
+        // Update the piece's position and move status
+        piece.setPosition(to);
+        piece.setHasMoved(true);
+
+        // Handle pawn promotion
+        if (move.isPromotion()) {
+            // Replace pawn with a queen at the destination
+            Queen queen = new Queen(piece.getColor(), to);
+
+            // Remove the pawn
+            if (piece.getColor() == PieceColor.WHITE) {
+                lightPieces.remove(piece);
+                lightPieces.add(queen);
+            } else {
+                darkPieces.remove(piece);
+                darkPieces.add(queen);
+            }
+
+            // Update the board array
+            boardArray[to.getRow()][to.getColumn()] = queen;
+        }
+
+        // Add to move history
+        moveSequence.add(move);
+        return true;
     }
 
-    @Override
-    public void mouseDragged(MouseEvent e) {
-        currX = e.getX() - 24;
-        currY = e.getY() - 24;
+    public List<Move> getAllLegalMoves(int color) {
+        List<Move> legalMoves = new ArrayList<>();
+        List<Piece> pieces = color == PieceColor.WHITE ? lightPieces : darkPieces;
 
-        repaint();
+        for (Piece piece : pieces) {
+            legalMoves.addAll(piece.getLegalMoves(this));
+        }
+
+        return legalMoves;
     }
 
-    // Irrelevant methods, do nothing for these mouse behaviors
-    @Override
-    public void mouseMoved(MouseEvent e) {
+    public boolean isKingInCheck(int color) {
+        King king = color == PieceColor.WHITE ? lightKing : darkKing;
+        Position kingPosition = king.getPosition();
+        List<Piece> opponentPieces = color == PieceColor.WHITE ? darkPieces : lightPieces;
+
+        for (Piece piece : opponentPieces) {
+            List<Position> attackPositions = piece.getAttackPositions(this);
+            if (attackPositions.contains(kingPosition)) {
+                return true;
+            }
+        }
+        return false;
     }
 
-    @Override
-    public void mouseClicked(MouseEvent e) {
+    public boolean isCheckmate(int color) {
+        if (!isKingInCheck(color)) {
+            return false;
+        }
+
+        List<Move> legalMoves = getAllLegalMoves(color);
+        return legalMoves.isEmpty();
     }
 
-    @Override
-    public void mouseEntered(MouseEvent e) {
+    public boolean isStalemate(int color) {
+        if (isKingInCheck(color)) {
+            return false;
+        }
+
+        List<Move> legalMoves = getAllLegalMoves(color);
+        return legalMoves.isEmpty();
     }
 
-    @Override
-    public void mouseExited(MouseEvent e) {
+    public Move getLastMove() {
+        if (moveSequence.isEmpty()) {
+            return null;
+        }
+        return moveSequence.get(moveSequence.size() - 1);
     }
 
+    public List<Move> getMoveHistory() {
+        return new ArrayList<>(moveSequence);
+    }
+
+    // Check if there's a piece between two positions (for rook, bishop, queen movements)
+    public boolean isPieceBetween(Position start, Position end) {
+        // Get direction of movement
+        int colDir = Integer.compare(end.getColumn(), start.getColumn());
+        int rowDir = Integer.compare(end.getRow(), start.getRow());
+
+        Position current = start;
+
+        // Move one step in the direction
+        current = new Position(current.getColumn() + colDir, current.getRow() + rowDir);
+
+        // Check all positions between start and end (exclusive)
+        while (!current.equals(end)) {
+            if (getPiece(current) != null) {
+                return true;
+            }
+            current = new Position(current.getColumn() + colDir, current.getRow() + rowDir);
+        }
+
+        return false;
+    }
+
+    // Clear the board for testing purposes
+    public void clearBoard() {
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                boardArray[row][col] = null;
+            }
+        }
+        lightPieces.clear();
+        darkPieces.clear();
+        moveSequence.clear();
+    }
+
+    // Place a piece on the board for testing
+    public void placePieceForTesting(Piece piece) {
+        Position pos = piece.getPosition();
+        boardArray[pos.getRow()][pos.getColumn()] = piece;
+
+        if (piece.getColor() == PieceColor.WHITE) {
+            lightPieces.add(piece);
+            if (piece instanceof King) {
+                lightKing = (King) piece;
+            }
+        } else {
+            darkPieces.add(piece);
+            if (piece instanceof King) {
+                darkKing = (King) piece;
+            }
+        }
+    }
 }

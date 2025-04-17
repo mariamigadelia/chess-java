@@ -1,166 +1,170 @@
 package Model.pieces;
 
-import Model.Board;
-import Model.Square;
-
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
+import Model.*;
 
-/**
- * Represents a Pawn chess piece with its specific movement rules
- */
 public class Pawn extends Piece {
-    private boolean wasMoved;
 
-    /**
-     * Constructor for creating a Pawn piece
-     *
-     * @param color The piece color (0 for white, 1 for black)
-     * @param initSq The initial square position
-     * @param img_file The image file path for the piece representation
-     */
-    public Pawn(int color, Square initSq, String img_file) {
-        super(color, initSq, img_file);
-        this.wasMoved = false;
+    public Pawn(int color, Position position) {
+        super(color, position);
     }
 
-    /**
-     * Moves the pawn to the destination square and updates its movement status
-     *
-     * @param destination The square to move to
-     * @return true if move was successful, false otherwise
-     */
+    // Copy constructor with hasMoved state
+    protected Pawn(int color, Position position, boolean hasMoved) {
+        super(color, position, hasMoved);
+    }
+
     @Override
-    public boolean move(Square destination) {
-        boolean moveSuccessful = super.move(destination);
-        if (moveSuccessful) {
-            wasMoved = true;
-        }
-        return moveSuccessful;
+    protected String generateImagePath() {
+        return getColor() == PieceColor.WHITE ? "assets/wpawn.png" : "assets/bpawn.png";
     }
 
-    /**
-     * Calculates all legal moves for this pawn on the current board
-     *
-     * @param board The current game board
-     * @return List of squares the pawn can legally move to
-     */
     @Override
-    public List<Square> getLegalMoves(Board board) {
-        LinkedList<Square> legalMoves = new LinkedList<>();
-        Square[][] squares = board.getSquareArray();
-        int x = this.getPosition().getXNum();
-        int y = this.getPosition().getYNum();
-        int color = this.getColor();
-
-        // White pawns move up the board (increasing y)
-        if (color == 0) {
-            addForwardMovesWhite(squares, x, y, legalMoves);
-            addDiagonalCapturesWhite(squares, x, y, legalMoves);
-        }
-        // Black pawns move down the board (decreasing y)
-        else {
-            addForwardMovesBlack(squares, x, y, legalMoves);
-            addDiagonalCapturesBlack(squares, x, y, legalMoves);
-        }
-
-        return legalMoves;
+    public String getType() {
+        return "Pawn";
     }
 
-    /**
-     * Adds forward movement squares for white pawns
-     *
-     * @param squares The board squares array
-     * @param x Current x-coordinate
-     * @param y Current y-coordinate
-     * @param legalMoves List to add legal moves to
-     */
-    private void addForwardMovesWhite(Square[][] squares, int x, int y, List<Square> legalMoves) {
-        // Check if one square ahead is within bounds and unoccupied
-        if (y + 1 < 8 && !squares[y + 1][x].isOccupied()) {
-            legalMoves.add(squares[y + 1][x]);
+    @Override
+    public List<Move> getLegalMoves(Board board) {
+        List<Move> possibleMoves = new ArrayList<>();
+        Position pos = getPosition();
 
-            // If pawn hasn't moved yet, it can move two squares
-            if (!wasMoved && y + 2 < 8 && !squares[y + 2][x].isOccupied()) {
-                legalMoves.add(squares[y + 2][x]);
-            }
-        }
-    }
+        if (pos == null) return possibleMoves;
 
-    /**
-     * Adds diagonal capture squares for white pawns
-     *
-     * @param squares The board squares array
-     * @param x Current x-coordinate
-     * @param y Current y-coordinate
-     * @param legalMoves List to add legal moves to
-     */
-    private void addDiagonalCapturesWhite(Square[][] squares, int x, int y, List<Square> legalMoves) {
-        // Check right diagonal capture
-        if (x + 1 < 8 && y + 1 < 8) {
-            if (squares[y + 1][x + 1].isOccupied() &&
-                    squares[y + 1][x + 1].getOccupyingPiece().getColor() != this.getColor()) {
-                legalMoves.add(squares[y + 1][x + 1]);
+        int column = pos.getColumn();
+        int row = pos.getRow();
+
+        // Direction is based on piece color (white moves up, black moves down)
+        int forwardDirection = (getColor() == PieceColor.WHITE) ? -1 : 1;
+
+        // Try moving forward one square
+        Position forwardOne = pos.offset(0, forwardDirection);
+        if (forwardOne.isValid() && board.getPiece(forwardOne) == null) {
+            tryAddMove(board, pos, forwardOne, null, possibleMoves);
+
+            // If pawn hasn't moved yet, it can move two squares forward
+            if (!hasMoved()) {
+                Position forwardTwo = pos.offset(0, 2 * forwardDirection);
+                if (forwardTwo.isValid() &&
+                        board.getPiece(forwardTwo) == null &&
+                        !board.isPieceBetween(pos, forwardTwo)) {
+                    tryAddMove(board, pos, forwardTwo, null, possibleMoves);
+                }
             }
         }
 
-        // Check left diagonal capture
-        if (x - 1 >= 0 && y + 1 < 8) {
-            if (squares[y + 1][x - 1].isOccupied() &&
-                    squares[y + 1][x - 1].getOccupyingPiece().getColor() != this.getColor()) {
-                legalMoves.add(squares[y + 1][x - 1]);
+        // Capture diagonally
+        tryDiagonalCapture(board, pos.offset(-1, forwardDirection), possibleMoves);
+        tryDiagonalCapture(board, pos.offset(1, forwardDirection), possibleMoves);
+
+        // En Passant capture
+        tryEnPassantCapture(board, possibleMoves);
+
+        return possibleMoves;
+    }
+
+    private void tryDiagonalCapture(Board board, Position capturePos, List<Move> moves) {
+        if (capturePos.isValid()) {
+            Piece targetPiece = board.getPiece(capturePos);
+            if (targetPiece != null && targetPiece.getColor() != getColor()) {
+                tryAddMove(board, getPosition(), capturePos, targetPiece, moves);
             }
         }
     }
 
-    /**
-     * Adds forward movement squares for black pawns
-     *
-     * @param squares The board squares array
-     * @param x Current x-coordinate
-     * @param y Current y-coordinate
-     * @param legalMoves List to add legal moves to
-     */
-    private void addForwardMovesBlack(Square[][] squares, int x, int y, List<Square> legalMoves) {
-        // Check if one square ahead is within bounds and unoccupied
-        if (y - 1 >= 0 && !squares[y - 1][x].isOccupied()) {
-            legalMoves.add(squares[y - 1][x]);
+    private void tryAddMove(Board board, Position from, Position to, Piece capturedPiece, List<Move> moves) {
+        boolean isPromotion = isPromotionRank(to.getRow());
 
-            // If pawn hasn't moved yet, it can move two squares
-            if (!wasMoved && y - 2 >= 0 && !squares[y - 2][x].isOccupied()) {
-                legalMoves.add(squares[y - 2][x]);
+        Move move = isPromotion ?
+                Move.createPromotion(from, to, this, capturedPiece) :
+                Move.createMove(from, to, this, capturedPiece);
+
+        // Check if this move would leave our king in check
+        if (!wouldMakeOwnKingVulnerable(board, move)) {
+            moves.add(move);
+        }
+    }
+
+    private boolean isPromotionRank(int row) {
+        return (getColor() == PieceColor.WHITE && row == 0) ||
+                (getColor() == PieceColor.BLACK && row == 7);
+    }
+
+    private void tryEnPassantCapture(Board board, List<Move> moves) {
+        Move lastMove = board.getLastMove();
+        if (lastMove == null) {
+            return;
+        }
+
+        // Check if last move was a two-square pawn advance
+        Piece lastMovedPiece = lastMove.getMovingPiece();
+        if (!(lastMovedPiece instanceof Pawn)) {
+            return;
+        }
+
+        Position start = lastMove.getOrigin();
+        Position end = lastMove.getDestination();
+        if (Math.abs(start.getRow() - end.getRow()) != 2) {
+            return;
+        }
+
+        Position myPosition = getPosition();
+        // Check if our pawn is adjacent to the opponent's pawn
+        if (myPosition.getRow() == end.getRow() &&
+                Math.abs(myPosition.getColumn() - end.getColumn()) == 1) {
+
+            // Determine where our pawn would move to
+            int captureRow = myPosition.getRow() + (getColor() == PieceColor.WHITE ? -1 : 1);
+            Position capturePosition = new Position(end.getColumn(), captureRow);
+
+            // Create an en passant move
+            Move enPassantMove = Move.createEnPassant(
+                    myPosition,
+                    capturePosition,
+                    this,
+                    lastMovedPiece
+            );
+
+            // Verify this move doesn't leave king in check
+            if (!wouldMakeOwnKingVulnerable(board, enPassantMove)) {
+                moves.add(enPassantMove);
             }
         }
     }
 
-    /**
-     * Adds diagonal capture squares for black pawns
-     *
-     * @param squares The board squares array
-     * @param x Current x-coordinate
-     * @param y Current y-coordinate
-     * @param legalMoves List to add legal moves to
-     */
-    private void addDiagonalCapturesBlack(Square[][] squares, int x, int y, List<Square> legalMoves) {
-        // Check right diagonal capture
-        if (x + 1 < 8 && y - 1 >= 0) {
-            if (squares[y - 1][x + 1].isOccupied() &&
-                    squares[y - 1][x + 1].getOccupyingPiece().getColor() != this.getColor()) {
-                legalMoves.add(squares[y - 1][x + 1]);
-            }
+    @Override
+    public List<Position> getAttackPositions(Board board) {
+        List<Position> attackPositions = new ArrayList<>();
+        Position pos = getPosition();
+
+        if (pos == null) return attackPositions;
+
+        int forwardDirection = (getColor() == PieceColor.WHITE) ? -1 : 1;
+
+        // Pawns attack diagonally
+        Position leftAttack = pos.offset(-1, forwardDirection);
+        if (leftAttack.isValid()) {
+            attackPositions.add(leftAttack);
         }
 
-        // Check left diagonal capture
-        if (x - 1 >= 0 && y - 1 >= 0) {
-            if (squares[y - 1][x - 1].isOccupied() &&
-                    squares[y - 1][x - 1].getOccupyingPiece().getColor() != this.getColor()) {
-                legalMoves.add(squares[y - 1][x - 1]);
-            }
+        Position rightAttack = pos.offset(1, forwardDirection);
+        if (rightAttack.isValid()) {
+            attackPositions.add(rightAttack);
         }
+
+        return attackPositions;
+    }
+
+    @Override
+    public Piece duplicate() {
+        return new Pawn(getColor(),
+                getPosition() != null ? new Position(getPosition().getColumn(), getPosition().getRow()) : null,
+                hasMoved());
     }
 
     @Override
     public String toString() {
-        return getColor() == 0 ? "White Pawn" : "Black Pawn";
+        return (getColor() == PieceColor.WHITE) ? "♙" : "♟";
     }
 }

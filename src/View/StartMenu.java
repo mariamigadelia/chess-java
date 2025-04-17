@@ -1,157 +1,241 @@
 package View;
 
-import View.GameWindow;
+import Controller.GameController;
 
-import java.awt.BorderLayout;
-import java.awt.Component;
-import java.awt.Image;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-import javax.imageio.ImageIO;
-import javax.swing.Box;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
+/**
+ * Entry point UI for the chess application that manages game setup and configuration.
+ * Provides options for different game modes and time controls.
+ */
+public class StartMenu extends JPanel implements Runnable {
+    private JFrame mainFrame;
+    private GameController gameController;
+    private GameWindow gameWindow;
+    private JComboBox<String> modeDropdown;
+    private JCheckBox timedGameCheckbox;
+    private JSpinner hoursSpinner, minutesSpinner, secondsSpinner;
+    private JButton playButton;
+    private JButton exitButton;
 
-public class StartMenu implements Runnable {
-    public void run() {
-        final JFrame startWindow = new JFrame("Chess");
-        // Set window properties
-        startWindow.setLocation(300,100);
-        startWindow.setResizable(false);
-        startWindow.setSize(260, 240);
-        
-        Box components = Box.createVerticalBox();
-        startWindow.add(components);
-        
-        // Controller.Game title
-        final JPanel titlePanel = new JPanel();
-        components.add(titlePanel);
-        final JLabel titleLabel = new JLabel("Chess");
-        titlePanel.add(titleLabel);
-        
-        // Black player selections
-        final JPanel blackPanel = new JPanel();
-        components.add(blackPanel, BorderLayout.EAST);
-        final JLabel blackPiece = new JLabel();
-        try {
-            Image blackImg = ImageIO.read(getClass().getResource("bp.png"));
-            blackPiece.setIcon(new ImageIcon(blackImg));
-            blackPanel.add(blackPiece);
-        } catch (Exception e) {
-            System.out.println("Required game file bp.png missing");
+    /**
+     * Constructor that accepts both GameWindow and GameController
+     */
+    public StartMenu(GameWindow gameWindow, GameController controller) {
+        this.gameWindow = gameWindow;
+        this.gameController = controller;
+        if (controller != null) {
+            controller.setView(gameWindow);
         }
-        
-        
-        
-        final JTextField blackInput = new JTextField("Black", 10);
-        blackPanel.add(blackInput);
-        
-        // White player selections
-        final JPanel whitePanel = new JPanel();
-        components.add(whitePanel);
-        final JLabel whitePiece = new JLabel();
-        
-        try {
-            Image whiteImg = ImageIO.read(getClass().getResource("wp.png"));
-            whitePiece.setIcon(new ImageIcon(whiteImg));
-            whitePanel.add(whitePiece);
-            startWindow.setIconImage(whiteImg);
-        }  catch (Exception e) {
-            System.out.println("Required game file wp.png missing");
-        }
-        
-        
-        final JTextField whiteInput = new JTextField("White", 10);
-        whitePanel.add(whiteInput);
-        
-        // Timer settings
-        final String[] minSecInts = new String[60];
-        for (int i = 0; i < 60; i++) {
-            if (i < 10) {
-                minSecInts[i] = "0" + Integer.toString(i);
+    }
+
+    /**
+     * Initializes and configures all UI components
+     */
+    private void initializeUI() {
+        // Set up panel properties
+        setLayout(new BorderLayout(20, 20));
+        setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
+        setBackground(new Color(240, 240, 240));
+
+        // Add main components to the layout
+        add(createHeaderPanel(), BorderLayout.NORTH);
+        add(createConfigPanel(), BorderLayout.CENTER);
+        add(createButtonPanel(), BorderLayout.SOUTH);
+    }
+
+    /**
+     * Creates the header panel with game title and description
+     */
+    private JPanel createHeaderPanel() {
+        JPanel headerPanel = new JPanel();
+        headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
+        headerPanel.setOpaque(false);
+
+        // Game title
+        JLabel titleLabel = new JLabel("Chess Master");
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 32));
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        // Game subtitle/description
+        JLabel subtitleLabel = new JLabel("Start a new game with your preferred settings");
+        subtitleLabel.setFont(new Font("SansSerif", Font.ITALIC, 14));
+        subtitleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        // Add components with spacing
+        headerPanel.add(Box.createVerticalStrut(10));
+        headerPanel.add(titleLabel);
+        headerPanel.add(Box.createVerticalStrut(5));
+        headerPanel.add(subtitleLabel);
+        headerPanel.add(Box.createVerticalStrut(20));
+
+        return headerPanel;
+    }
+
+    /**
+     * Creates the game configuration panel with all game options
+     */
+    private JPanel createConfigPanel() {
+        JPanel configPanel = new JPanel();
+        configPanel.setLayout(new BoxLayout(configPanel, BoxLayout.Y_AXIS));
+        configPanel.setOpaque(false);
+
+        // Game mode selection
+        JPanel gameModePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        gameModePanel.setOpaque(false);
+
+        JLabel modeLabel = new JLabel("Game Mode:");
+        modeLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+
+        String[] modes = {"Player vs Player", "Player vs Computer", "Computer vs Computer"};
+        modeDropdown = new JComboBox<>(modes);
+        modeDropdown.setPreferredSize(new Dimension(200, 25));
+
+        gameModePanel.add(modeLabel);
+        gameModePanel.add(modeDropdown);
+
+        // Time control options
+        JPanel timeControlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        timeControlPanel.setOpaque(false);
+
+        timedGameCheckbox = new JCheckBox("Enable Time Control");
+        timedGameCheckbox.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        timedGameCheckbox.setOpaque(false);
+
+        timeControlPanel.add(timedGameCheckbox);
+
+        // Time settings panel
+        JPanel timeSettingsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        timeSettingsPanel.setOpaque(false);
+
+        hoursSpinner = new JSpinner(new SpinnerNumberModel(0, 0, 10, 1));
+        minutesSpinner = new JSpinner(new SpinnerNumberModel(10, 0, 59, 1));
+        secondsSpinner = new JSpinner(new SpinnerNumberModel(0, 0, 59, 5));
+
+        timeSettingsPanel.add(new JLabel("Hours:"));
+        timeSettingsPanel.add(hoursSpinner);
+        timeSettingsPanel.add(new JLabel("Minutes:"));
+        timeSettingsPanel.add(minutesSpinner);
+        timeSettingsPanel.add(new JLabel("Seconds:"));
+        timeSettingsPanel.add(secondsSpinner);
+
+        // Initially disable time settings
+        enableTimeSettings(false);
+
+        // Add listener to checkbox
+        timedGameCheckbox.addActionListener(e ->
+                enableTimeSettings(timedGameCheckbox.isSelected())
+        );
+
+        // Add all panels to config
+        configPanel.add(Box.createVerticalStrut(10));
+        configPanel.add(gameModePanel);
+        configPanel.add(Box.createVerticalStrut(15));
+        configPanel.add(timeControlPanel);
+        configPanel.add(Box.createVerticalStrut(5));
+        configPanel.add(timeSettingsPanel);
+        configPanel.add(Box.createVerticalGlue());
+
+        return configPanel;
+    }
+
+    /**
+     * Creates the button panel with start and exit buttons
+     */
+    private JPanel createButtonPanel() {
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
+        buttonPanel.setOpaque(false);
+
+        playButton = new JButton("Start Game");
+        playButton.setFont(new Font("SansSerif", Font.BOLD, 16));
+        playButton.setPreferredSize(new Dimension(150, 40));
+
+        exitButton = new JButton("Exit");
+        exitButton.setFont(new Font("SansSerif", Font.PLAIN, 16));
+        exitButton.setPreferredSize(new Dimension(100, 40));
+
+        // Add action listeners
+        playButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                startGame();
+            }
+        });
+
+        exitButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                System.exit(0);
+            }
+        });
+
+        buttonPanel.add(playButton);
+        buttonPanel.add(exitButton);
+
+        return buttonPanel;
+    }
+
+    /**
+     * Enables or disables the time control settings
+     *
+     * @param enable True to enable, false to disable
+     */
+    private void enableTimeSettings(boolean enable) {
+        hoursSpinner.setEnabled(enable);
+        minutesSpinner.setEnabled(enable);
+        secondsSpinner.setEnabled(enable);
+    }
+
+    /**
+     * Starts the game with the currently selected options
+     */
+    private void startGame() {
+        String gameMode = (String) modeDropdown.getSelectedItem();
+
+        if (gameController != null) {
+            if (timedGameCheckbox.isSelected()) {
+                int hours = (Integer) hoursSpinner.getValue();
+                int minutes = (Integer) minutesSpinner.getValue();
+                int seconds = (Integer) secondsSpinner.getValue();
+
+                // Start timed game
+                gameController.startTimedGame(gameMode, hours, minutes, seconds);
             } else {
-                minSecInts[i] = Integer.toString(i);
+                // Start regular game
+                gameController.startNewGame(gameMode);
+            }
+
+            // Make the game window visible and close the start menu
+            if (gameWindow != null) {
+                gameWindow.setVisible(true);
+            }
+
+            if (mainFrame != null) {
+                mainFrame.dispose();
             }
         }
-        
-        final JComboBox<String> seconds = new JComboBox<String>(minSecInts);
-        final JComboBox<String> minutes = new JComboBox<String>(minSecInts);
-        final JComboBox<String> hours = 
-                new JComboBox<String>(new String[] {"0","1","2","3"});
-        
-        Box timerSettings = Box.createHorizontalBox();
-        
-        hours.setMaximumSize(hours.getPreferredSize());
-        minutes.setMaximumSize(minutes.getPreferredSize());
-        seconds.setMaximumSize(minutes.getPreferredSize());
-        
-        timerSettings.add(hours);
-        timerSettings.add(Box.createHorizontalStrut(10));
-        timerSettings.add(seconds);
-        timerSettings.add(Box.createHorizontalStrut(10));
-        timerSettings.add(minutes);
-        
-        timerSettings.add(Box.createVerticalGlue());
-        
-        components.add(timerSettings);
-        
-        // Buttons
-        Box buttons = Box.createHorizontalBox();
-        final JButton quit = new JButton("Quit");
-        
-        quit.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-              startWindow.dispose();
-            }
-          });
-        
-        final JButton instr = new JButton("Instructions");
-        
-        instr.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                JOptionPane.showMessageDialog(startWindow,
-                        "To begin a new game, input player names\n" +
-                        "next to the Model.pieces. Set the clocks and\n" +
-                        "click \"Start\". Setting the timer to all\n" +
-                        "zeroes begins a new untimed game.",
-                        "How to play",
-                        JOptionPane.PLAIN_MESSAGE);
-            }
-          });
-        
-        final JButton start = new JButton("Start");
-        
-        start.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                String bn = blackInput.getText();
-                String wn = whiteInput.getText();
-                int hh = Integer.parseInt((String) hours.getSelectedItem());
-                int mm = Integer.parseInt((String) minutes.getSelectedItem());
-                int ss = Integer.parseInt((String) seconds.getSelectedItem());
-                
-                new GameWindow(bn, wn, hh, mm, ss);
-                startWindow.dispose();
-            }
-          });
-        
-        buttons.add(start);
-        buttons.add(Box.createHorizontalStrut(10));
-        buttons.add(instr);
-        buttons.add(Box.createHorizontalStrut(10));
-        buttons.add(quit);
-        components.add(buttons);
-        
-        Component space = Box.createGlue();
-        components.add(space);
+    }
 
-        startWindow.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        startWindow.setVisible(true);
+    /**
+     * Creates and shows the start menu window
+     */
+    @Override
+    public void run() {
+        // Create main frame
+        mainFrame = new JFrame("Chess Game Setup");
+        mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        // Initialize UI
+        initializeUI();
+
+        // Add this panel to the frame
+        mainFrame.add(this);
+        mainFrame.setSize(500, 400);
+        mainFrame.setLocationRelativeTo(null);
+        mainFrame.setResizable(false);
+        mainFrame.setVisible(true);
     }
 }

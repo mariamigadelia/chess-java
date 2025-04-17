@@ -10,7 +10,7 @@
         <jar destfile="${dir.jarfile}/chess-java.jar">
             <manifest>
                 <attribute name="Main-Class" value="org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader"/>
-                <attribute name="Rsrc-Main-Class" value="Controller.Game"/>
+                <attribute name="Rsrc-Main-Class" value="Game"/>
                 <attribute name="Class-Path" value="."/>
                 <attribute name="Rsrc-Class-Path" value="./"/>
             </manifest>

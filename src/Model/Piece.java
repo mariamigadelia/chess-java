@@ -1,201 +1,122 @@
 package Model;
 
-import java.awt.Graphics;
-import java.awt.Image;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.util.LinkedList;
 import java.util.List;
-
-import javax.imageio.ImageIO;
-import View.PieceView;
-
 
 public abstract class Piece {
     private final int color;
+    private Position position;
+    private final String pieceImage;
+    private boolean hasMoved; // Track if the piece has moved (useful for pawns, rooks, kings)
 
-
-    private Square currentSquare;
-    private BufferedImage img;
-    private PieceView view;
-
-    public void setView(PieceView view) {
-        this.view = view;
-    }
-
-    // Add getter
-    public PieceView getView() {
-        return this.view;
-    }
-    public Piece(int color, Square initSq, String img_file) {
+    public Piece(int color, Position position) {
         this.color = color;
-        this.currentSquare = initSq;
-
-
-        try {
-            if (this.img == null) {
-                this.img = ImageIO.read(getClass().getResource(img_file));
-            }
-        } catch (IOException e) {
-            System.out.println("File not found: " + e.getMessage());
-        }
+        this.position = position;
+        this.pieceImage = generateImagePath();
+        this.hasMoved = false;
     }
 
-    public boolean move(Square fin) {
-        Piece occup = fin.getOccupyingPiece();
-
-        if (occup != null) {
-            if (occup.getColor() == this.color) return false;
-            else fin.capture(this);
-        }
-
-        currentSquare.removePiece();
-        this.currentSquare = fin;
-        currentSquare.put(this);
-        return true;
+    // Constructor that also includes the hasMoved state for copying pieces
+    protected Piece(int color, Position position, boolean hasMoved) {
+        this.color = color;
+        this.position = position;
+        this.pieceImage = generateImagePath();
+        this.hasMoved = hasMoved;
     }
 
-    public Square getPosition() {
-        return currentSquare;
-    }
-
-    public void setPosition(Square sq) {
-        this.currentSquare = sq;
-    }
+    protected abstract String generateImagePath();
 
     public int getColor() {
         return color;
     }
 
-    public Image getImage() {
-        return img;
+    public Position getPosition() {
+        return position;
     }
 
-    public void draw(Graphics g) {
-        int x = currentSquare.getX();
-        int y = currentSquare.getY();
-
-        g.drawImage(this.img, x, y, null);
+    public void setPosition(Position position) {
+        this.position = position;
     }
 
-    public int[] getLinearOccupations(Square[][] board, int x, int y) {
-        int lastYabove = 0;
-        int lastXright = 7;
-        int lastYbelow = 7;
-        int lastXleft = 0;
-
-        for (int i = 0; i < y; i++) {
-            if (board[i][x].isOccupied()) {
-                if (board[i][x].getOccupyingPiece().getColor() != this.color) {
-                    lastYabove = i;
-                } else lastYabove = i + 1;
-            }
-        }
-
-        for (int i = 7; i > y; i--) {
-            if (board[i][x].isOccupied()) {
-                if (board[i][x].getOccupyingPiece().getColor() != this.color) {
-                    lastYbelow = i;
-                } else lastYbelow = i - 1;
-            }
-        }
-
-        for (int i = 0; i < x; i++) {
-            if (board[y][i].isOccupied()) {
-                if (board[y][i].getOccupyingPiece().getColor() != this.color) {
-                    lastXleft = i;
-                } else lastXleft = i + 1;
-            }
-        }
-
-        for (int i = 7; i > x; i--) {
-            if (board[y][i].isOccupied()) {
-                if (board[y][i].getOccupyingPiece().getColor() != this.color) {
-                    lastXright = i;
-                } else lastXright = i - 1;
-            }
-        }
-
-        int[] occups = {lastYabove, lastYbelow, lastXleft, lastXright};
-
-        return occups;
+    public String getPieceImage() {
+        return pieceImage;
     }
 
-    public List<Square> getDiagonalOccupations(Square[][] board, int x, int y) {
-        LinkedList<Square> diagOccup = new LinkedList<Square>();
-
-        int xNW = x - 1;
-        int xSW = x - 1;
-        int xNE = x + 1;
-        int xSE = x + 1;
-        int yNW = y - 1;
-        int ySW = y + 1;
-        int yNE = y - 1;
-        int ySE = y + 1;
-
-        while (xNW >= 0 && yNW >= 0) {
-            if (board[yNW][xNW].isOccupied()) {
-                if (board[yNW][xNW].getOccupyingPiece().getColor() == this.color) {
-                    break;
-                } else {
-                    diagOccup.add(board[yNW][xNW]);
-                    break;
-                }
-            } else {
-                diagOccup.add(board[yNW][xNW]);
-                yNW--;
-                xNW--;
-            }
-        }
-
-        while (xSW >= 0 && ySW < 8) {
-            if (board[ySW][xSW].isOccupied()) {
-                if (board[ySW][xSW].getOccupyingPiece().getColor() == this.color) {
-                    break;
-                } else {
-                    diagOccup.add(board[ySW][xSW]);
-                    break;
-                }
-            } else {
-                diagOccup.add(board[ySW][xSW]);
-                ySW++;
-                xSW--;
-            }
-        }
-
-        while (xSE < 8 && ySE < 8) {
-            if (board[ySE][xSE].isOccupied()) {
-                if (board[ySE][xSE].getOccupyingPiece().getColor() == this.color) {
-                    break;
-                } else {
-                    diagOccup.add(board[ySE][xSE]);
-                    break;
-                }
-            } else {
-                diagOccup.add(board[ySE][xSE]);
-                ySE++;
-                xSE++;
-            }
-        }
-
-        while (xNE < 8 && yNE >= 0) {
-            if (board[yNE][xNE].isOccupied()) {
-                if (board[yNE][xNE].getOccupyingPiece().getColor() == this.color) {
-                    break;
-                } else {
-                    diagOccup.add(board[yNE][xNE]);
-                    break;
-                }
-            } else {
-                diagOccup.add(board[yNE][xNE]);
-                yNE--;
-                xNE++;
-            }
-        }
-
-        return diagOccup;
+    public boolean hasMoved() {
+        return hasMoved;
     }
 
-    // No implementation, to be implemented by each subclass
-    public abstract List<Square> getLegalMoves(Board b);
+    public void setHasMoved(boolean hasMoved) {
+        this.hasMoved = hasMoved;
+    }
+
+    /**
+     * Get all legal moves for this piece on the given board
+     */
+    public abstract List<Move> getLegalMoves(Board board);
+
+    /**
+     * Get all positions this piece can attack (useful for checking check)
+     */
+    public abstract List<Position> getAttackPositions(Board board);
+
+    /**
+     * Get the piece type name
+     */
+    public abstract String getType();
+
+    public boolean moveTo(Position position) {
+        Position oldPosition = this.position;
+        this.position = position;
+        this.hasMoved = true;
+        return true;
+    }
+
+    /**
+     * Check if the move would leave the king in check
+     */
+    protected boolean wouldMakeOwnKingVulnerable(Board board, Move move) {
+        // Create a temporary board to simulate the move
+        Board tempBoard = new Board(board);
+
+        // Find the same piece on the copied board
+        Piece tempPiece = tempBoard.getPiece(move.getOrigin());
+
+        // Create a move for the temporary board
+        Move tempMove = Move.createMove(
+                move.getOrigin(),
+                move.getDestination(),
+                tempPiece,
+                tempBoard.getPiece(move.getDestination())
+        );
+
+        // Execute the move on the temporary board
+        tempBoard.executeMove(tempMove);
+
+        // Check if the king is in check after the move
+        return tempBoard.isKingInCheck(this.getColor());
+    }
+
+    /**
+     * Create a deep copy of this piece
+     */
+    public abstract Piece duplicate();
+
+    /**
+     * Determine if this piece can move to a target position on the given board
+     */
+    protected boolean canMoveTo(Board board, Position target) {
+        // Check if the target position is valid
+        if (!target.isValid()) {
+            return false;
+        }
+
+        // Check if the target is occupied by a piece of the same color
+        Piece targetPiece = board.getPiece(target);
+        return targetPiece == null || targetPiece.getColor() != this.color;
+    }
+
+    @Override
+    public String toString() {
+        return PieceColor.colorName(color) + " " + getType() + " at " + position;
+    }
 }

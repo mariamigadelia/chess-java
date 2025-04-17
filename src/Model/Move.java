@@ -1,92 +1,109 @@
 package Model;
-import Model.Piece;
-/**
- * Represents a chess move between two squares, tracking the piece
- * and any captured pieces.
- */
-public class Move {
-    private Piece movingPiece;
-    private Square fromSquare;
-    private Square toSquare;
-    private Piece capturedPiece;
-    private boolean isSpecialMove; // Castle, en passant, promotion
-    private String specialMoveType; // "castle", "en-passant", "promotion"
-    private long timestamp;
 
-    public Move(Piece movingPiece, Square fromSquare, Square toSquare) {
-        this.movingPiece = movingPiece;
-        this.fromSquare = fromSquare;
-        this.toSquare = toSquare;
-        this.capturedPiece = toSquare.getOccupyingPiece();
-        this.timestamp = System.currentTimeMillis();
-        this.isSpecialMove = false;
+public class Move {
+    private final Position origin;
+    private final Position destination;
+    private final Piece movingPiece;
+    private final Piece takenPiece;
+    private final boolean promotion;
+    private final boolean castlingMove;
+    private final boolean enPassantCapture;
+    private final int moveFlags; // Bitfield for additional move data
+
+    // Constants for move flags
+    public static final int FLAG_CHECK = 1;
+    public static final int FLAG_CHECKMATE = 2;
+    public static final int FLAG_FIRST_MOVE = 4;
+
+    public Move(Position origin, Position destination, Piece movingPiece) {
+        this(origin, destination, movingPiece, null, false, false, false, 0);
     }
 
-    public Move(Piece movingPiece, Square fromSquare, Square toSquare,
-                String specialMoveType) {
-        this(movingPiece, fromSquare, toSquare);
-        this.isSpecialMove = true;
-        this.specialMoveType = specialMoveType;
+    public Move(Position origin, Position destination, Piece movingPiece,
+                Piece takenPiece, boolean promotion, boolean castlingMove,
+                boolean enPassantCapture, int moveFlags) {
+        this.origin = origin;
+        this.destination = destination;
+        this.movingPiece = movingPiece;
+        this.takenPiece = takenPiece;
+        this.promotion = promotion;
+        this.castlingMove = castlingMove;
+        this.enPassantCapture = enPassantCapture;
+        this.moveFlags = moveFlags;
+    }
+
+    // Factory method for creating simple moves
+    public static Move createMove(Position origin, Position destination, Piece movingPiece, Piece takenPiece) {
+        return new Move(origin, destination, movingPiece, takenPiece, false, false, false, 0);
+    }
+
+    // Factory method for creating promotion moves
+    public static Move createPromotion(Position origin, Position destination, Piece movingPiece, Piece takenPiece) {
+        return new Move(origin, destination, movingPiece, takenPiece, true, false, false, 0);
+    }
+
+    // Factory method for creating castling moves
+    public static Move createCastling(Position origin, Position destination, Piece movingPiece) {
+        return new Move(origin, destination, movingPiece, null, false, true, false, 0);
+    }
+
+    // Factory method for creating en passant captures
+    public static Move createEnPassant(Position origin, Position destination, Piece movingPiece, Piece takenPiece) {
+        return new Move(origin, destination, movingPiece, takenPiece, false, false, true, 0);
+    }
+
+    public Position getOrigin() {
+        return origin;
+    }
+
+    public Position getDestination() {
+        return destination;
     }
 
     public Piece getMovingPiece() {
         return movingPiece;
     }
 
-    public Square getFromSquare() {
-        return fromSquare;
+    public Piece getTakenPiece() {
+        return takenPiece;
     }
 
-    public Square getToSquare() {
-        return toSquare;
+    public boolean isPromotion() {
+        return promotion;
     }
 
-    public Piece getCapturedPiece() {
-        return capturedPiece;
+    public boolean isCastlingMove() {
+        return castlingMove;
     }
 
-    public boolean isCapture() {
-        return capturedPiece != null;
+    public boolean isEnPassantCapture() {
+        return enPassantCapture;
     }
 
-    public boolean isSpecialMove() {
-        return isSpecialMove;
+    public boolean hasFlag(int flag) {
+        return (moveFlags & flag) != 0;
     }
 
-    public String getSpecialMoveType() {
-        return specialMoveType;
+    public int getMoveFlags() {
+        return moveFlags;
     }
 
-    public long getTimestamp() {
-        return timestamp;
+    public Move withFlag(int flag) {
+        return new Move(origin, destination, movingPiece, takenPiece,
+                promotion, castlingMove, enPassantCapture, moveFlags | flag);
     }
 
-    public String toChessNotation() {
-        // Basic algebraic notation implementation
-        String pieceLetter = getPieceLetter(movingPiece);
-        String captureNotation = isCapture() ? "x" : "";
-        String destination = toSquare.getPositionName();
-
-        return pieceLetter + captureNotation + destination;
-    }
-
-    private String getPieceLetter(Piece piece) {
-        // Return chess notation letter based on piece type
-        String className = piece.getClass().getSimpleName();
-        switch (className) {
-            case "Pawn":
-                return "";
-            case "Knight":
-                return "N";
-            case "Bishop":
-                return "B";
-            case "Rook":
-                return "R";
-            case "Queen":
-                return "K";
-            default:
-                return "";
-
+    @Override
+    public String toString() {
+        String moveText = movingPiece.getType() + ": " + origin + " → " + destination;
+        if (takenPiece != null) {
+            moveText += " captures " + takenPiece.getType();
         }
+        if (promotion) moveText += " (promotion)";
+        if (castlingMove) moveText += " (castling)";
+        if (enPassantCapture) moveText += " (en passant)";
+        if (hasFlag(FLAG_CHECK)) moveText += " +";
+        if (hasFlag(FLAG_CHECKMATE)) moveText += " #";
+        return moveText;
     }
 }
