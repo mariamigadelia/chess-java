@@ -1,0 +1,66 @@
+# Chess for Java
+
+## Overview
+This project is a feature-rich Java chess implementation with a clean, intuitive GUI and robust game logic. Originally created as a programming course assignment, it has been completely refactored into an MVC architecture to improve code organization and maintainability.
+
+## Features
+- Two-player chess game with complete rules implementation
+- Checkmate and stalemate detection
+- Optional chess clock with customizable time controls
+- Multiple game modes:
+  - Player vs Player
+  - Player vs Computer
+  - Computer vs Computer
+- Clean, intuitive user interface
+- Start menu for game configuration
+
+## Architecture
+The project follows the Model-View-Controller (MVC) pattern:
+- **Model**: Represents the chess game state and rules
+- **View**: Handles the graphical user interface components
+- **Controller**: Manages game flow and connects the model and view
+
+## Technology
+This game is built using:
+- Core Java
+- Java Swing GUI libraries
+- JUnit test suite for component testing
+
+The codebase is modular and object-oriented, featuring:
+- Custom drawing for game components
+- Self-programmed logic for chess rules and checkmate detection
+- Comprehensive test coverage
+
+## Running the Application
+Compile the project into an executable .jar file by running the following ANT build script on the command line. Make sure jar-in-jar-loader.zip in this repository is in the folder.
+
+```
+ant -f build.xml
+```
+
+Then, run the executable .jar file, named `chess-java.jar` to play.
+
+## Project Structure
+```
+src/
+├── Model/       # Game logic, board representation, pieces
+├── View/        # UI components, game window, rendering
+├── Controller/  # Game flow control, input handling
+└── Game.java    # Main application entry point
+test/
+└── # Test classes for various components
+```
+
+## Testing
+Unit tests have been added to verify the functionality of critical components. Run the tests using:
+
+```
+ant test
+```
+
+## Future Improvements
+- Save/load game functionality
+- Networked multiplayer
+- Opening book for computer players
+- Game analysis tools
+
