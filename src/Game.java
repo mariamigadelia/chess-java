@@ -6,9 +6,13 @@ import javax.swing.*;
 
 public class Game implements Runnable {
     public void run() {
-        GameController controller = new GameController();
-        GameWindow gameWindow = new GameWindow(controller);
-        SwingUtilities.invokeLater(new StartMenu(gameWindow, controller));
+        // Just create a new StartMenu with no parameters
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                new StartMenu();
+            }
+        });
     }
 
     public static void main(String[] args) {

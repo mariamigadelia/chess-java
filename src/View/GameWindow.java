@@ -1,7 +1,6 @@
 package View;
 
 import Controller.GameController;
-import Model.PieceColor;
 
 import javax.swing.*;
 import java.awt.*;
@@ -9,230 +8,241 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 /**
- * Main application window for the Chess Game.
- * Manages the game interface and coordinates between the UI components and controller.
+ * Main game window that displays the chess board and game controls.
  */
 public class GameWindow extends JFrame {
-    // UI Components
-    private ChessBoardUI boardPanel;
+    private GameController controller;
+    private ChessBoardUI boardUI;
+    private JLabel statusLabel;
     private JPanel controlPanel;
-    private JLabel gameStatusLabel;
-    private JButton newGameBtn;
-    private JButton resignBtn;
-    private JButton pauseTimerBtn;
-    private StartMenu menuScreen;
-
-    // Game controller reference
-    private final GameController controller;
-
-    // Window constants
-    private static final int WINDOW_WIDTH = 900;
-    private static final int WINDOW_HEIGHT = 650;
-    private static final String APP_TITLE = "Chess Master";
+    private JButton pauseResumeButton; // For timed games
 
     /**
-     * Creates a new game window with the specified controller.
-     *
-     * @param controller The game controller that manages game logic
+     * Creates a new game window.
      */
-    public GameWindow(GameController controller) {
-        this.controller = controller;
+    public GameWindow() {
+        super("Chess Game");
 
-        // Configure window properties
-        setupWindowProperties();
+        // Create controller
+        controller = new GameController();
+        controller.setView(this);
 
-        // Initialize all UI components
-        initializeComponents();
+        // Set up the window
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
 
-        // Show the start menu initially
-        displayStartMenu();
+        // Create board UI
+        boardUI = new ChessBoardUI(controller);
+        add(boardUI, BorderLayout.CENTER);
 
-        // Make window visible
+        // Create status bar
+        statusLabel = new JLabel("White's turn");
+        statusLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        statusLabel.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
+        add(statusLabel, BorderLayout.SOUTH);
+
+        // Create control panel
+        setupControlPanel();
+        add(controlPanel, BorderLayout.EAST);
+
+        // Pack and display
+        pack();
+        setLocationRelativeTo(null);
         setVisible(true);
     }
 
     /**
-     * Configures basic window properties
+     * Sets up the control panel with game buttons.
      */
-    private void setupWindowProperties() {
-        setTitle(APP_TITLE);
-        setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
-        setLocationRelativeTo(null); // Center on screen
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new BorderLayout(10, 10));
-    }
-
-    /**
-     * Initializes all UI components used in the application
-     */
-    private void initializeComponents() {
-        // Create chess board UI component
-        boardPanel = new ChessBoardUI(controller);
-
-        // Create game control panel
-        createControlPanel();
-
-        // Create start menu
-        menuScreen = new StartMenu(this, controller);
-    }
-
-    /**
-     * Creates the game control panel with buttons and status display
-     */
-    private void createControlPanel() {
-        // Create main panel with vertical layout
+    private void setupControlPanel() {
         controlPanel = new JPanel();
         controlPanel.setLayout(new BoxLayout(controlPanel, BoxLayout.Y_AXIS));
-        controlPanel.setBorder(BorderFactory.createEmptyBorder(20, 15, 20, 15));
+        controlPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // Create status label
-        gameStatusLabel = new JLabel("Game Ready");
-        gameStatusLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        gameStatusLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        // New Game button
+        JButton newGameButton = new JButton("New Game");
+        newGameButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        newGameButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                showGameOptions();
+            }
+        });
 
-        // Create control buttons
-        newGameBtn = createButton("New Game", e -> displayStartMenu());
-        resignBtn = createButton("Resign", e -> handleResignation());
-        pauseTimerBtn = createButton("Pause Timer", e -> toggleTimer());
+        // Resign button
+        JButton resignButton = new JButton("Resign");
+        resignButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        resignButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                controller.surrender();
+            }
+        });
 
-        // Add components to control panel with spacing
-        controlPanel.add(createHeaderPanel());
-        controlPanel.add(Box.createVerticalStrut(30));
-        controlPanel.add(gameStatusLabel);
-        controlPanel.add(Box.createVerticalStrut(40));
-        controlPanel.add(newGameBtn);
+        // Flip Board button
+        JButton flipBoardButton = new JButton("Flip Board");
+        flipBoardButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        flipBoardButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                boardUI.setFlipped(!boardUI.isFlipped());
+            }
+        });
+
+        // Pause/Resume button for timed games
+        pauseResumeButton = new JButton("Pause");
+        pauseResumeButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        pauseResumeButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                boolean isRunning = controller.toggleClockPause();
+                pauseResumeButton.setText(isRunning ? "Pause" : "Resume");
+            }
+        });
+
+        controlPanel.add(newGameButton);
         controlPanel.add(Box.createVerticalStrut(10));
-        controlPanel.add(resignBtn);
+        controlPanel.add(resignButton);
         controlPanel.add(Box.createVerticalStrut(10));
-        controlPanel.add(pauseTimerBtn);
-        controlPanel.add(Box.createVerticalGlue());
+        controlPanel.add(flipBoardButton);
+        controlPanel.add(Box.createVerticalStrut(10));
+        controlPanel.add(pauseResumeButton);
+
+        pauseResumeButton.setVisible(false); // Hidden until we have a timed game
     }
 
     /**
-     * Creates a styled button with the given label and action
+     * Shows a dialog for selecting game options.
      */
-    private JButton createButton(String label, ActionListener action) {
-        JButton button = new JButton(label);
-        button.setAlignmentX(Component.CENTER_ALIGNMENT);
-        button.setMaximumSize(new Dimension(150, 30));
-        button.addActionListener(action);
-        return button;
+    private void showGameOptions() {
+        JDialog dialog = new JDialog(this, "New Game Options", true);
+        dialog.setLayout(new BorderLayout());
+
+        JPanel panel = new JPanel();
+        panel.setLayout(new GridLayout(0, 1, 5, 5));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // Game mode selection
+        JComboBox<String> gameModeCombo = new JComboBox<>(new String[] {
+                "Player vs Player", "Player vs Computer", "Computer vs Computer"
+        });
+        panel.add(new JLabel("Game Mode:"));
+        panel.add(gameModeCombo);
+
+        // Time control
+        JCheckBox timedGameCheckbox = new JCheckBox("Timed Game");
+        panel.add(timedGameCheckbox);
+
+        JPanel timePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        SpinnerNumberModel hoursModel = new SpinnerNumberModel(0, 0, 10, 1);
+        SpinnerNumberModel minutesModel = new SpinnerNumberModel(15, 0, 59, 1);
+        SpinnerNumberModel secondsModel = new SpinnerNumberModel(0, 0, 59, 5);
+
+        JSpinner hoursSpinner = new JSpinner(hoursModel);
+        JSpinner minutesSpinner = new JSpinner(minutesModel);
+        JSpinner secondsSpinner = new JSpinner(secondsModel);
+
+        timePanel.add(new JLabel("Time: "));
+        timePanel.add(hoursSpinner);
+        timePanel.add(new JLabel("h "));
+        timePanel.add(minutesSpinner);
+        timePanel.add(new JLabel("m "));
+        timePanel.add(secondsSpinner);
+        timePanel.add(new JLabel("s"));
+
+        panel.add(timePanel);
+
+        // Enable/disable time controls based on checkbox
+        timedGameCheckbox.addActionListener(e -> {
+            boolean enabled = timedGameCheckbox.isSelected();
+            hoursSpinner.setEnabled(enabled);
+            minutesSpinner.setEnabled(enabled);
+            secondsSpinner.setEnabled(enabled);
+        });
+
+        // Initial state
+        hoursSpinner.setEnabled(false);
+        minutesSpinner.setEnabled(false);
+        secondsSpinner.setEnabled(false);
+
+        // Buttons
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton startButton = new JButton("Start Game");
+        JButton cancelButton = new JButton("Cancel");
+
+        startButton.addActionListener(e -> {
+            String gameMode = (String) gameModeCombo.getSelectedItem();
+            if (timedGameCheckbox.isSelected()) {
+                int hours = (Integer) hoursSpinner.getValue();
+                int minutes = (Integer) minutesSpinner.getValue();
+                int seconds = (Integer) secondsSpinner.getValue();
+                controller.startTimedGame(gameMode, hours, minutes, seconds);
+                pauseResumeButton.setVisible(true);
+                pauseResumeButton.setText("Pause");
+            } else {
+                controller.startNewGame(gameMode);
+                pauseResumeButton.setVisible(false);
+            }
+            dialog.dispose();
+        });
+
+        cancelButton.addActionListener(e -> dialog.dispose());
+
+        buttonPanel.add(startButton);
+        buttonPanel.add(cancelButton);
+
+        dialog.add(panel, BorderLayout.CENTER);
+        dialog.add(buttonPanel, BorderLayout.SOUTH);
+
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
     }
 
     /**
-     * Creates a decorative header panel for the control section
-     */
-    private JPanel createHeaderPanel() {
-        JPanel headerPanel = new JPanel();
-        headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
-        headerPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        JLabel titleLabel = new JLabel(APP_TITLE);
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        JLabel subtitleLabel = new JLabel("Game Controls");
-        subtitleLabel.setFont(new Font("Segoe UI", Font.ITALIC, 14));
-        subtitleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        headerPanel.add(titleLabel);
-        headerPanel.add(Box.createVerticalStrut(5));
-        headerPanel.add(subtitleLabel);
-
-        return headerPanel;
-    }
-
-    /**
-     * Shows the start menu screen
-     */
-    public void displayStartMenu() {
-        getContentPane().removeAll();
-        getContentPane().add(menuScreen, BorderLayout.CENTER);
-        validate();
-        repaint();
-    }
-
-    /**
-     * Initializes and displays the game board and controls
+     * Gets the game controller.
      *
-     * @param gameMode The selected game mode
+     * @return The game controller
      */
-    public void startGame(String gameMode) {
-        // Clear the current content
-        getContentPane().removeAll();
-
-        // Add board and control panel to the window
-        getContentPane().add(boardPanel, BorderLayout.CENTER);
-        getContentPane().add(controlPanel, BorderLayout.EAST);
-
-        // Set up the game in the controller
-        controller.startNewGame(gameMode);
-
-        // Update status label
-        updateStatus("White's turn");
-
-        // Refresh the window
-        validate();
-        repaint();
+    public GameController getController() {
+        return controller;
     }
 
     /**
-     * Handles player resignation
-     */
-    private void handleResignation() {
-        int currentPlayer = controller.getCurrentTurn();
-        String winner = PieceColor.colorName(PieceColor.opponent(currentPlayer));
-        showGameOver(winner + " wins by resignation");
-        controller.surrender();
-    }
-
-    /**
-     * Toggles the chess timer on/off
-     */
-    private void toggleTimer() {
-        boolean isRunning = controller.toggleClockPause();
-        pauseTimerBtn.setText(isRunning ? "Pause Timer" : "Resume Timer");
-    }
-
-    /**
-     * Updates the status display with current game information
-     *
-     * @param statusMessage The status message to display
-     */
-    public void updateStatus(String statusMessage) {
-        gameStatusLabel.setText(statusMessage);
-    }
-
-    /**
-     * Shows a game over dialog with the specified result message
-     *
-     * @param resultMessage The game result message
-     */
-    public void showGameOver(String resultMessage) {
-        // Display game over dialog
-        JOptionPane.showMessageDialog(
-                this,
-                resultMessage,
-                "Game Over",
-                JOptionPane.INFORMATION_MESSAGE
-        );
-    }
-
-    /**
-     * Refreshes the chess board display
+     * Refreshes the board display.
      */
     public void refreshBoard() {
-        if (boardPanel != null) {
-            boardPanel.updateBoard();
-        }
+        boardUI.updateBoard();
     }
 
     /**
-     * Gets the chess board UI component
+     * Updates the status text.
      *
-     * @return The chess board UI
+     * @param status The status message to display
      */
-    public ChessBoardUI getChessBoardUI() {
-        return boardPanel;
+    public void updateStatus(String status) {
+        statusLabel.setText(status);
+    }
+
+    /**
+     * Shows a game over message.
+     *
+     * @param result The game result message
+     */
+    public void showGameOver(String result) {
+        boardUI.clearSelection();
+        JOptionPane.showMessageDialog(this, result, "Game Over", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    /**
+     * Entry point for running the chess game.
+     */
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                new StartMenu();
+            }
+        });
     }
 }
