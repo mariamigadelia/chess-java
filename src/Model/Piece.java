@@ -23,7 +23,11 @@ public abstract class Piece {
         this.hasMoved = hasMoved;
     }
 
-    protected abstract String generateImagePath();
+    protected String generateImagePath() {
+        String colorPrefix = (color == PieceColor.WHITE) ? "white" : "black";
+        String pieceType = getType().toLowerCase();
+        return "resources/pieces/" + colorPrefix + "_" + pieceType + ".png";
+    }
 
     public int getColor() {
         return color;
