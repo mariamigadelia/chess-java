@@ -14,6 +14,12 @@ public class RookTest {
     public void setUp() {
         board = new Board();
         board.clearBoard(); // Start with an empty board for controlled testing
+
+        // Add kings to the board to avoid NullPointerException in isKingInCheck
+        King whiteKing = new King(PieceColor.WHITE, new Position(0, 0));
+        King blackKing = new King(PieceColor.BLACK, new Position(7, 7));
+        board.placePieceForTesting(whiteKing);
+        board.placePieceForTesting(blackKing);
     }
 
     @Test
@@ -113,11 +119,16 @@ public class RookTest {
 
     @Test
     public void testRookCheck() {
-        // Place a white rook and a black king on the board
+        // Set up a new board with kings
+        board.clearBoard();
+        King whiteKing = new King(PieceColor.WHITE, new Position(0, 0));
+        King blackKing = new King(PieceColor.BLACK, new Position(3, 0));
+        board.placePieceForTesting(whiteKing);
+        board.placePieceForTesting(blackKing);
+
+        // Place a white rook in position to check the black king
         Rook rook = new Rook(PieceColor.WHITE, new Position(3, 3));
-        King enemyKing = new King(PieceColor.BLACK, new Position(3, 0));
         board.placePieceForTesting(rook);
-        board.placePieceForTesting(enemyKing);
 
         // Check if the king is in check
         assertTrue(board.isKingInCheck(PieceColor.BLACK));
@@ -131,40 +142,47 @@ public class RookTest {
 
     @Test
     public void testRookCastling() {
+        // Clear the board and set up kings
+        board.clearBoard();
+        King whiteKing = new King(PieceColor.WHITE, new Position(4, 7));
+        King blackKing = new King(PieceColor.BLACK, new Position(4, 0));
+        board.placePieceForTesting(whiteKing);
+        board.placePieceForTesting(blackKing);
+
         // Set up a king and rook in initial positions
-        King king = new King(PieceColor.WHITE, new Position(4, 7));
         Rook rook = new Rook(PieceColor.WHITE, new Position(7, 7)); // Kingside rook
-        board.placePieceForTesting(king);
         board.placePieceForTesting(rook);
 
         // Verify that castling is possible
-        assertTrue(rook.canParticipateInCastling(board, king));
+        assertTrue(rook.canParticipateInCastling(board, whiteKing));
 
         // Move the rook and verify castling is no longer possible
         rook.setHasMoved(true);
-        assertFalse(rook.canParticipateInCastling(board, king));
+        assertFalse(rook.canParticipateInCastling(board, whiteKing));
         rook.setHasMoved(false); // Reset for next test
 
         // Move the king and verify castling is no longer possible
-        king.setHasMoved(true);
-        assertFalse(rook.canParticipateInCastling(board, king));
-        king.setHasMoved(false); // Reset for next test
+        whiteKing.setHasMoved(true);
+        assertFalse(rook.canParticipateInCastling(board, whiteKing));
+        whiteKing.setHasMoved(false); // Reset for next test
 
         // Put a piece between the king and rook
         board.placePieceForTesting(new Knight(PieceColor.WHITE, new Position(6, 7)));
-        assertFalse(rook.canParticipateInCastling(board, king));
+        assertFalse(rook.canParticipateInCastling(board, whiteKing));
 
         // Clear the board and set up a king in check
         board.clearBoard();
-        king = new King(PieceColor.WHITE, new Position(4, 7));
+        whiteKing = new King(PieceColor.WHITE, new Position(4, 7));
+        blackKing = new King(PieceColor.BLACK, new Position(4, 0));
         rook = new Rook(PieceColor.WHITE, new Position(7, 7));
-        Queen enemyQueen = new Queen(PieceColor.BLACK, new Position(4, 0));
-        board.placePieceForTesting(king);
+        Queen enemyQueen = new Queen(PieceColor.BLACK, new Position(4, 1));
+        board.placePieceForTesting(whiteKing);
+        board.placePieceForTesting(blackKing);
         board.placePieceForTesting(rook);
         board.placePieceForTesting(enemyQueen);
 
         // Verify castling is not possible when the king is in check
-        assertFalse(rook.canParticipateInCastling(board, king));
+        assertFalse(rook.canParticipateInCastling(board, whiteKing));
     }
 
     @Test
