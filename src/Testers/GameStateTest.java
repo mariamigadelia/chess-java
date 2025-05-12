@@ -27,23 +27,40 @@ public class GameStateTest {
 
     @Test
     public void testCheckDetection() {
+        // Create a new board instance specific to this test
+        Board testBoard = new Board();
+        testBoard.clearBoard();
+
         // Set up a simple check position
         // White king at e1, Black queen at e2 giving check
         King whiteKing = new King(PieceColor.WHITE, new Position(4, 7));
-        Queen blackQueen = new Queen(PieceColor.BLACK, new Position(4, 6));
+        testBoard.placePieceForTesting(whiteKing);
 
-        board.placePieceForTesting(whiteKing);
-        board.placePieceForTesting(blackQueen);
+        // Verify the king is not in check initially
+        assertFalse("White king should not be in check initially", testBoard.isKingInCheck(PieceColor.WHITE));
+
+        // Add the queen to put the king in check
+        Queen blackQueen = new Queen(PieceColor.BLACK, new Position(4, 6));
+        testBoard.placePieceForTesting(blackQueen);
 
         // Verify the king is in check
-        assertTrue("White king should be in check", board.isKingInCheck(PieceColor.WHITE));
+        assertTrue("White king should be in check", testBoard.isKingInCheck(PieceColor.WHITE));
 
-        // Add a piece to block the check
+        // Create another new board to test blocking
+        Board blockingBoard = new Board();
+        blockingBoard.clearBoard();
+
+        // Set up the blocking scenario from scratch
+        King newWhiteKing = new King(PieceColor.WHITE, new Position(4, 7));
         Rook whiteRook = new Rook(PieceColor.WHITE, new Position(4, 6));
-        board.placePieceForTesting(whiteRook);
+        Queen newBlackQueen = new Queen(PieceColor.BLACK, new Position(4, 5)); // Queen behind rook
 
-        // King should no longer be in check
-        assertFalse("White king should not be in check after blocking", board.isKingInCheck(PieceColor.WHITE));
+        blockingBoard.placePieceForTesting(newWhiteKing);
+        blockingBoard.placePieceForTesting(whiteRook);
+        blockingBoard.placePieceForTesting(newBlackQueen);
+
+        // King should not be in check due to the blocking rook
+        assertFalse("White king should not be in check after blocking", blockingBoard.isKingInCheck(PieceColor.WHITE));
     }
 
     @Test
@@ -83,7 +100,7 @@ public class GameStateTest {
         board.placePieceForTesting(blackPawn3);
         board.placePieceForTesting(whiteRook);
 
-        // Verify the king is in checkmate
+        // Verify the king is in check
         assertTrue("Black king should be in check", board.isKingInCheck(PieceColor.BLACK));
         assertTrue("Black king should be in checkmate", board.isCheckmate(PieceColor.BLACK));
     }
@@ -148,20 +165,24 @@ public class GameStateTest {
 
     @Test
     public void testCapturingCheckingPiece() {
+        // Create a new board instance specific to this test
+        Board testBoard = new Board();
+        testBoard.clearBoard();
+
         // Set up a position where a checking piece can be captured
         King blackKing = new King(PieceColor.BLACK, new Position(4, 4));
-        Bishop blackBishop = new Bishop(PieceColor.BLACK, new Position(3, 3));
-        Bishop whiteRook = new Bishop(PieceColor.WHITE, new Position(4, 6));
+        Bishop blackBishop = new Bishop(PieceColor.BLACK, new Position(4, 6)); // Bishop positioned to capture the rook
+        Rook whiteRook = new Rook(PieceColor.WHITE, new Position(4, 0)); // Rook directly checking the king
 
-        board.placePieceForTesting(blackKing);
-        board.placePieceForTesting(blackBishop);
-        board.placePieceForTesting(whiteRook);
+        testBoard.placePieceForTesting(blackKing);
+        testBoard.placePieceForTesting(blackBishop);
+        testBoard.placePieceForTesting(whiteRook);
 
         // Verify the king is in check
-        assertTrue("Black king should be in check", board.isKingInCheck(PieceColor.BLACK));
+        assertTrue("Black king should be in check", testBoard.isKingInCheck(PieceColor.BLACK));
 
-        // Check can be escaped by capturing
-        assertFalse("Black king should not be in checkmate", board.isCheckmate(PieceColor.BLACK));
+        // Check can be escaped by capturing with the bishop
+        assertFalse("Black king should not be in checkmate", testBoard.isCheckmate(PieceColor.BLACK));
     }
 
     @Test
